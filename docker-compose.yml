@@ -1,0 +1,10 @@
+services:
+  prompt-generator:
+    build: .
+    container_name: prompt-generator
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
