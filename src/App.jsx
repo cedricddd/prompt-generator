@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { checkAppAccess, getStoredToken, useCredit } from './lib/auth'
 import { Toaster, toast } from 'react-hot-toast'
 import {
   Image, FileText, Globe, Code, Mail, Share2,
@@ -865,6 +866,7 @@ export default function App() {
   const [generationCount, setGenerationCount] = useState(() => {
     try { return parseInt(localStorage.getItem('gen-count') || '0') } catch { return 0 }
   })
+  const [creditsRemaining, setCreditsRemaining] = useState(null)
   const { history, addToHistory, clearHistory } = useHistory()
   const btnRef = useRef(null)
 
@@ -882,6 +884,15 @@ export default function App() {
 
   // Tags d'enrichissement (par type)
   const [selectedTags, setSelectedTags] = useState([])
+
+  // ─── Auth + solde crédits ───
+  useEffect(() => {
+    checkAppAccess().then((access) => {
+      if (access.status === 'authorized' && access.creditsRemaining !== null) {
+        setCreditsRemaining(access.creditsRemaining)
+      }
+    })
+  }, [])
 
   /**
    * Toggle un tag dans la sélection.
@@ -952,6 +963,19 @@ export default function App() {
       const newCount = generationCount + 1
       setGenerationCount(newCount)
       localStorage.setItem('gen-count', String(newCount))
+
+      // Déduire 1 crédit après génération réussie
+      const token = getStoredToken()
+      if (token) {
+        const credit = await useCredit(token)
+        if (credit === 'no_credits') {
+          window.location.href = 'https://saas.ced-it.be/dashboard/credits'
+          return
+        }
+        if (credit?.creditsRemaining !== undefined) {
+          setCreditsRemaining(credit.creditsRemaining)
+        }
+      }
 
       addToHistory({
         keywords: keywords.trim(), type, style, language, hasAttachments,
@@ -1042,6 +1066,28 @@ export default function App() {
               <Keyboard size={9} />
               Ctrl+Enter
             </span>
+            {creditsRemaining !== null && (
+              <span
+                className="badge-pill"
+                style={{
+                  fontSize: '0.65rem',
+                  padding: '0.15rem 0.5rem',
+                  background: creditsRemaining === 0 ? 'rgba(239,68,68,0.15)' : 'rgba(0,212,255,0.1)',
+                  border: creditsRemaining === 0 ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(0,212,255,0.3)',
+                  color: creditsRemaining === 0 ? '#ef4444' : 'var(--accent)',
+                }}
+              >
+                ✦ {creditsRemaining} crédit{creditsRemaining !== 1 ? 's' : ''}
+                {creditsRemaining === 0 && (
+                  <a
+                    href="https://saas.ced-it.be/dashboard/credits"
+                    style={{ marginLeft: '0.3rem', textDecoration: 'underline' }}
+                  >
+                    Acheter →
+                  </a>
+                )}
+              </span>
+            )}
           </div>
         </div>
       </header>

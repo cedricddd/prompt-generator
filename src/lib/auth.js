@@ -74,10 +74,10 @@ export function isTokenExpiredLocally(token) {
 
 /**
  * Vérifie le token auprès de l'API SaaS.
- * Retourne le payload d'accès ou null si invalide.
+ * Retourne le payload d'accès, null si invalide (401), ou 'network_error' si erreur réseau.
  *
  * @param {string} token
- * @returns {Promise<{hasAccess: boolean, accessType: string, email: string, trialExpiresAt: string|null} | null>}
+ * @returns {Promise<{hasAccess: boolean, accessType: string, email: string, trialExpiresAt: string|null, creditsRemaining: number|null} | null | 'network_error'>}
  */
 export async function verifyTokenWithSaas(token) {
   try {
@@ -86,6 +86,29 @@ export async function verifyTokenWithSaas(token) {
     })
 
     if (res.status === 401) return null
+    if (!res.ok) return null
+
+    return await res.json()
+  } catch {
+    return 'network_error'
+  }
+}
+
+/**
+ * Déduit 1 crédit après une génération réussie.
+ * Retourne le nouveau solde, null si erreur réseau, ou 'no_credits' si 402.
+ *
+ * @param {string} token
+ * @returns {Promise<{creditsRemaining: number} | null | 'no_credits'>}
+ */
+export async function useCredit(token) {
+  try {
+    const res = await fetch(`${SAAS_URL}/api/apps/${APP_SLUG}/use-credit`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    if (res.status === 402) return 'no_credits'
     if (!res.ok) return null
 
     return await res.json()
@@ -100,6 +123,7 @@ export async function verifyTokenWithSaas(token) {
  * Retourne :
  * - { status: 'authorized', accessType, email, trialExpiresAt } si accès OK
  * - { status: 'unauthorized' } si pas d'accès (la fonction redirige automatiquement)
+ * - { status: 'error' } en cas d'erreur réseau (accès offline refusé)
  */
 export async function checkAppAccess() {
   consumeTokenFromUrl()
@@ -119,6 +143,17 @@ export async function checkAppAccess() {
 
   const access = await verifyTokenWithSaas(token)
 
+  // Erreur réseau : on fait confiance au token local (non expiré) pour éviter la boucle
+  if (access === 'network_error') {
+    const payload = decodeTokenPayload(token)
+    return {
+      status: 'authorized',
+      accessType: payload?.accessType || 'unknown',
+      email: payload?.email || '',
+      trialExpiresAt: payload?.trialExpiresAt || null,
+    }
+  }
+
   if (!access || !access.hasAccess) {
     clearToken()
     redirectToSso()
@@ -130,6 +165,7 @@ export async function checkAppAccess() {
     accessType: access.accessType,
     email: access.email,
     trialExpiresAt: access.trialExpiresAt,
+    creditsRemaining: access.creditsRemaining ?? null,
   }
 }
 
