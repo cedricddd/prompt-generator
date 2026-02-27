@@ -4,7 +4,7 @@ import { Toaster, toast } from 'react-hot-toast'
 import {
   Image, FileText, Globe, Code, Mail, Share2,
   Sparkles, Copy, Check, Loader2, Lightbulb, Shuffle,
-  Zap, X, Clock, RotateCcw, ChevronDown, ChevronUp,
+  Zap, X, Clock, RotateCcw,
   Keyboard, ArrowRight, Ban, Ratio, Palette, Settings2,
   Wand2, BrainCircuit, Rocket, Star, Paperclip, Layers
 } from 'lucide-react'
@@ -283,8 +283,9 @@ function FloatingParticles() {
 }
 
 // ─── Composant CopyButton ───
-function CopyButton({ text, label = 'Copier' }) {
+function CopyButton({ text, label = 'Copier', size = 'sm' }) {
   const [copied, setCopied] = useState(false)
+  const isLg = size === 'lg'
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(text)
@@ -296,14 +297,21 @@ function CopyButton({ text, label = 'Copier' }) {
   return (
     <button
       onClick={handleCopy}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 cursor-pointer hover:scale-105"
+      className={`flex items-center gap-2 rounded-xl font-semibold transition-all duration-300 cursor-pointer hover:scale-105 ${
+        isLg ? 'px-5 py-2.5 text-sm' : 'px-3 py-1.5 rounded-lg text-xs font-medium'
+      }`}
       style={{
-        background: copied ? 'var(--success)' : 'rgba(0, 212, 255, 0.1)',
+        background: copied
+          ? 'var(--success)'
+          : isLg
+            ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.18) 0%, rgba(0, 102, 255, 0.18) 100%)'
+            : 'rgba(0, 212, 255, 0.1)',
         color: copied ? 'white' : 'var(--accent)',
-        border: `1px solid ${copied ? 'var(--success)' : 'rgba(0, 212, 255, 0.2)'}`,
+        border: `1px solid ${copied ? 'var(--success)' : isLg ? 'rgba(0, 212, 255, 0.35)' : 'rgba(0, 212, 255, 0.2)'}`,
+        boxShadow: !copied && isLg ? '0 0 18px rgba(0, 212, 255, 0.12), inset 0 1px 0 rgba(255,255,255,0.05)' : undefined,
       }}
     >
-      {copied ? <Check size={13} /> : <Copy size={13} />}
+      {copied ? <Check size={isLg ? 16 : 13} /> : <Copy size={isLg ? 16 : 13} />}
       {copied ? 'Copié !' : label}
     </button>
   )
@@ -495,7 +503,7 @@ function ResultSection({ result }) {
                 </div>
                 <h3 className="text-base font-bold text-white">Prompt Optimisé</h3>
               </div>
-              <CopyButton text={result.prompt} />
+              <CopyButton text={result.prompt} size="lg" />
             </div>
             <div
               className="rounded-xl p-4 text-sm leading-relaxed whitespace-pre-wrap"
@@ -593,24 +601,19 @@ function ResultSection({ result }) {
 
 // ─── Composant Historique ───
 function HistoryPanel({ history, onSelect, onClear }) {
-  const [open, setOpen] = useState(false)
-
   if (history.length === 0) return null
 
   return (
     <div className="animate-fade-in">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 text-xs font-medium transition-all duration-300 cursor-pointer hover:opacity-80"
+      <div
+        className="flex items-center gap-2 text-xs font-medium"
         style={{ color: 'var(--text-muted)' }}
       >
         <Clock size={13} />
         Historique récent ({history.length})
-        {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-      </button>
+      </div>
 
-      {open && (
-        <div className="mt-3 space-y-2 animate-fade-in-scale">
+      <div className="mt-3 space-y-2">
           {history.slice(0, 5).map((item, i) => (
             <button
               key={i}
@@ -645,7 +648,6 @@ function HistoryPanel({ history, onSelect, onClear }) {
             Effacer l'historique
           </button>
         </div>
-      )}
     </div>
   )
 }
@@ -661,7 +663,6 @@ function HistoryPanel({ history, onSelect, onClear }) {
  * @param {() => void} props.onClearTags - Callback pour tout désélectionner
  */
 function SuggestionPanel({ type, selectedTags, onToggleTag, onClearTags }) {
-  const [open, setOpen] = useState(false)
   const categories = TYPE_SUGGESTIONS[type]
   if (!categories) return null
 
@@ -669,10 +670,7 @@ function SuggestionPanel({ type, selectedTags, onToggleTag, onClearTags }) {
 
   return (
     <div className="animate-fade-in">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full section-label mb-2 cursor-pointer hover:opacity-80 transition-opacity"
-      >
+      <div className="w-full section-label mb-2">
         <Wand2 size={14} />
         Enrichir le prompt
         {selectedTags.length > 0 && (
@@ -680,20 +678,17 @@ function SuggestionPanel({ type, selectedTags, onToggleTag, onClearTags }) {
             {selectedTags.length}
           </span>
         )}
-        <span className="flex items-center gap-2 ml-auto">
-          {selectedTags.length > 0 && (
-            <span
-              onClick={(e) => { e.stopPropagation(); onClearTags() }}
-              className="text-xs cursor-pointer transition-colors duration-200 hover:underline"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Effacer
-            </span>
-          )}
-          {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-        </span>
-      </button>
-      {open && <div className="glass-card p-4 space-y-3 animate-fade-in-scale">
+        {selectedTags.length > 0 && (
+          <span
+            onClick={onClearTags}
+            className="text-xs cursor-pointer transition-colors duration-200 hover:underline ml-auto"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Effacer
+          </span>
+        )}
+      </div>
+      <div className="glass-card p-4 space-y-3">
         {categories.map((category) => (
           <div key={category.id}>
             <span
@@ -725,7 +720,7 @@ function SuggestionPanel({ type, selectedTags, onToggleTag, onClearTags }) {
             </div>
           </div>
         ))}
-      </div>}
+      </div>
     </div>
   )
 }
@@ -788,10 +783,32 @@ function EmptyState() {
         </div>
       </div>
 
-      <h3 className="text-lg font-bold mb-2 text-white">
+      {/* Titre décroché */}
+      <div className="gradient-line w-12 mx-auto mt-4 mb-6" />
+      <div
+        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase mb-3"
+        style={{
+          background: 'rgba(0, 212, 255, 0.08)',
+          border: '1px solid rgba(0, 212, 255, 0.2)',
+          color: 'var(--accent)',
+        }}
+      >
+        <Sparkles size={10} />
+        IA Générative
+      </div>
+      <h3
+        className="text-3xl font-black mb-3 tracking-tight"
+        style={{
+          background: 'linear-gradient(135deg, #ffffff 0%, var(--accent) 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          filter: 'drop-shadow(0 0 20px rgba(0, 212, 255, 0.35))',
+        }}
+      >
         Prêt à créer
       </h3>
-      <p className="text-sm leading-relaxed max-w-sm mx-auto" style={{ color: 'var(--text-muted)' }}>
+      <p className="text-sm leading-relaxed max-w-sm mx-auto mb-2" style={{ color: 'var(--text-muted)' }}>
         Décrivez votre idée et laissez l'IA transformer vos mots en un prompt parfaitement optimisé
       </p>
 
@@ -867,14 +884,12 @@ export default function App() {
     try { return parseInt(localStorage.getItem('gen-count') || '0') } catch { return 0 }
   })
   const [creditsRemaining, setCreditsRemaining] = useState(null)
+  const [isUnlimited, setIsUnlimited] = useState(true) // défaut: on assume illimité jusqu'à vérification
   const { history, addToHistory, clearHistory } = useHistory()
   const btnRef = useRef(null)
 
   // Option fichiers attachés
   const [hasAttachments, setHasAttachments] = useState(false)
-
-  // Panneaux repliables
-  const [showAdvanced, setShowAdvanced] = useState(false)
 
   // Options avancées (image)
   const [negativeKeywords, setNegativeKeywords] = useState('')
@@ -888,8 +903,13 @@ export default function App() {
   // ─── Auth + solde crédits ───
   useEffect(() => {
     checkAppAccess().then((access) => {
-      if (access.status === 'authorized' && access.creditsRemaining !== null) {
-        setCreditsRemaining(access.creditsRemaining)
+      if (access.status === 'authorized') {
+        if (access.creditsRemaining !== null) {
+          setCreditsRemaining(access.creditsRemaining)
+          setIsUnlimited(false)
+        } else {
+          setIsUnlimited(true)
+        }
       }
     })
   }, [])
@@ -964,9 +984,9 @@ export default function App() {
       setGenerationCount(newCount)
       localStorage.setItem('gen-count', String(newCount))
 
-      // Déduire 1 crédit après génération réussie
+      // Déduire 1 crédit après génération réussie (comptes à crédits uniquement)
       const token = getStoredToken()
-      if (token) {
+      if (token && !isUnlimited) {
         const credit = await useCredit(token)
         if (credit === 'no_credits') {
           window.location.href = 'https://saas.ced-it.be/dashboard/credits'
@@ -1395,17 +1415,11 @@ export default function App() {
             {/* ─── Options avancées (Image) ─── */}
             {type === 'image' && (
               <div className="animate-fade-in">
-                <button
-                  onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="w-full section-label mb-2 cursor-pointer hover:opacity-80 transition-opacity"
-                >
+                <div className="w-full section-label mb-2">
                   <Settings2 size={14} />
                   Options avancées
-                  <span className="ml-auto">
-                    {showAdvanced ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                  </span>
-                </button>
-                {showAdvanced && <div className="space-y-4 animate-fade-in-scale">
+                </div>
+                <div className="space-y-4">
 
                   {/* Ratio d'image */}
                   <div>
@@ -1550,7 +1564,7 @@ export default function App() {
                       }}
                     />
                   </div>
-                </div>}
+                </div>
               </div>
             )}
 

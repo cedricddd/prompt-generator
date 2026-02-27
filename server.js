@@ -125,13 +125,18 @@ const STYLE_INSTRUCTIONS = {
 // ─── Templates fallback (sans API) ───
 const FALLBACK_TEMPLATES = {
   image: {
-    prompt: (kw, style) => `Create a ${style === 'creative' ? 'stunning and artistic' : 'professional high-quality'} ${kw}. Style: ultra-detailed digital artwork with cinematic lighting, rich color palette, dramatic composition. Shot in 8K resolution, photorealistic textures, volumetric lighting, depth of field. Trending on ArtStation, masterpiece quality. Aspect ratio 16:9.`,
+    prompt: (kw, style, lang) => lang === 'fr'
+      ? `Crée une image ${style === 'creative' ? 'artistique et saisissante' : 'professionnelle de haute qualité'} représentant : ${kw}. Style : œuvre numérique ultra-détaillée avec éclairage cinématique, palette de couleurs riche, composition dramatique. Résolution 8K, textures photoréalistes, éclairage volumétrique, profondeur de champ. Qualité chef-d'œuvre. Ratio 16:9.`
+      : `Create a ${style === 'creative' ? 'stunning and artistic' : 'professional high-quality'} ${kw}. Style: ultra-detailed digital artwork with cinematic lighting, rich color palette, dramatic composition. Shot in 8K resolution, photorealistic textures, volumetric lighting, depth of field. Trending on ArtStation, masterpiece quality. Aspect ratio 16:9.`,
     tips: [
       "Ajoutez des mots-clés négatifs pour exclure ce que vous ne voulez pas",
       "Précisez le ratio d'image souhaité (16:9, 1:1, 9:16)",
       "Mentionnez un artiste ou style de référence pour guider l'esthétique"
     ],
-    variations: (kw) => [
+    variations: (kw, lang) => lang === 'fr' ? [
+      `Photographie hyperréaliste de ${kw}, appareil Canon EOS R5, objectif 85mm, f/1.4, lumière dorée de fin de journée, faible profondeur de champ, qualité National Geographic, 8K UHD`,
+      `Illustration vectorielle minimaliste de ${kw}, lignes épurées, design plat, palette limitée à 4 couleurs, formes géométriques modernes, adapté à l'impression grand format`
+    ] : [
       `Hyperrealistic photograph of ${kw}, shot on Canon EOS R5, 85mm lens, f/1.4, golden hour lighting, shallow depth of field, National Geographic quality, 8K UHD`,
       `Minimalist vector illustration of ${kw}, clean lines, flat design, limited color palette of 4 colors, modern geometric shapes, suitable for large format printing`
     ]
@@ -208,8 +213,8 @@ app.post('/api/generate', async (req, res) => {
     }
 
     const langInstruction = language === 'fr'
-      ? 'IMPORTANT: Génère le prompt ET toutes les réponses en FRANÇAIS.'
-      : 'IMPORTANT: Generate the prompt AND all responses in ENGLISH.';
+      ? 'LANGUE IMPOSÉE: FRANÇAIS. Génère le prompt, les tips ET les variations ENTIÈREMENT en français. Cette règle est absolue et prime sur toute autre instruction.'
+      : 'IMPOSED LANGUAGE: ENGLISH. Generate the prompt, tips AND variations ENTIRELY in English. This rule is absolute and overrides all other instructions.';
 
     // Tags d'enrichissement sélectionnés par l'utilisateur
     let enrichmentSection = '';
@@ -239,11 +244,12 @@ app.post('/api/generate', async (req, res) => {
 
     // Mode API Claude
     if (anthropic) {
-      const userMessage = `${TYPE_INSTRUCTIONS[type] || TYPE_INSTRUCTIONS.image}
+      const userMessage = `${langInstruction}
+
+${TYPE_INSTRUCTIONS[type] || TYPE_INSTRUCTIONS.image}
 
 ${STYLE_INSTRUCTIONS[style] || STYLE_INSTRUCTIONS.professional}
-
-${langInstruction}${enrichmentSection}${advancedOptions}${attachmentInstruction}
+${enrichmentSection}${advancedOptions}${attachmentInstruction}
 
 IDÉE DE L'UTILISATEUR: "${keywords}"
 
@@ -278,19 +284,19 @@ Génère un prompt ultra-optimisé pour cette idée. Réponds UNIQUEMENT en JSON
 
     // Mode fallback (sans API)
     const template = FALLBACK_TEMPLATES[type] || FALLBACK_TEMPLATES.image;
-    let prompt = template.prompt(keywords, style);
+    let prompt = template.prompt(keywords, style, language);
 
     // Enrichir le prompt fallback avec les tags d'enrichissement
     if (Array.isArray(enrichmentTags) && enrichmentTags.length > 0) {
-      prompt += ` Key elements: ${enrichmentTags.join(', ')}.`;
+      prompt += language === 'fr' ? ` Éléments clés : ${enrichmentTags.join(', ')}.` : ` Key elements: ${enrichmentTags.join(', ')}.`;
     }
 
     // Enrichir le prompt fallback avec les options avancées
     if (type === 'image') {
-      if (aspectRatio) prompt += ` Aspect ratio ${aspectRatio}.`;
-      if (artistReference) prompt += ` Style inspired by ${artistReference}.`;
-      if (negativeKeywords) prompt += ` Negative prompt: ${negativeKeywords}.`;
-      if (imageVariants && imageVariants > 1) prompt += ` Generate ${imageVariants} distinct visual variations.`;
+      if (aspectRatio) prompt += language === 'fr' ? ` Ratio d'image ${aspectRatio}.` : ` Aspect ratio ${aspectRatio}.`;
+      if (artistReference) prompt += language === 'fr' ? ` Style inspiré de ${artistReference}.` : ` Style inspired by ${artistReference}.`;
+      if (negativeKeywords) prompt += language === 'fr' ? ` Prompt négatif : ${negativeKeywords}.` : ` Negative prompt: ${negativeKeywords}.`;
+      if (imageVariants && imageVariants > 1) prompt += language === 'fr' ? ` Génère ${imageVariants} variations visuelles distinctes.` : ` Generate ${imageVariants} distinct visual variations.`;
     }
 
     // Ajouter instruction fichiers attachés en fallback
@@ -301,7 +307,7 @@ Génère un prompt ultra-optimisé pour cette idée. Réponds UNIQUEMENT en JSON
     const result = {
       prompt,
       tips: template.tips,
-      variations: template.variations(keywords)
+      variations: template.variations(keywords, language)
     };
 
     return res.json(result);
@@ -310,19 +316,19 @@ Génère un prompt ultra-optimisé pour cette idée. Réponds UNIQUEMENT en JSON
     console.error('Erreur génération:', error.message);
 
     // Fallback en cas d'erreur API
-    const { keywords: kw, type: tp = 'image', style: st = 'professional', hasAttachments: ha = false, negativeKeywords: nk, aspectRatio: ar, artistReference: aref, imageVariants: iv, enrichmentTags: etags } = req.body;
+    const { keywords: kw, type: tp = 'image', style: st = 'professional', language: lg = 'fr', hasAttachments: ha = false, negativeKeywords: nk, aspectRatio: ar, artistReference: aref, imageVariants: iv, enrichmentTags: etags } = req.body;
     const template = FALLBACK_TEMPLATES[tp] || FALLBACK_TEMPLATES.image;
-    let fallbackPrompt = template.prompt(kw, st);
+    let fallbackPrompt = template.prompt(kw, st, lg);
 
     if (Array.isArray(etags) && etags.length > 0) {
-      fallbackPrompt += ` Key elements: ${etags.join(', ')}.`;
+      fallbackPrompt += lg === 'fr' ? ` Éléments clés : ${etags.join(', ')}.` : ` Key elements: ${etags.join(', ')}.`;
     }
 
     if (tp === 'image') {
-      if (ar) fallbackPrompt += ` Aspect ratio ${ar}.`;
-      if (aref) fallbackPrompt += ` Style inspired by ${aref}.`;
-      if (nk) fallbackPrompt += ` Negative prompt: ${nk}.`;
-      if (iv && iv > 1) fallbackPrompt += ` Generate ${iv} distinct visual variations.`;
+      if (ar) fallbackPrompt += lg === 'fr' ? ` Ratio d'image ${ar}.` : ` Aspect ratio ${ar}.`;
+      if (aref) fallbackPrompt += lg === 'fr' ? ` Style inspiré de ${aref}.` : ` Style inspired by ${aref}.`;
+      if (nk) fallbackPrompt += lg === 'fr' ? ` Prompt négatif : ${nk}.` : ` Negative prompt: ${nk}.`;
+      if (iv && iv > 1) fallbackPrompt += lg === 'fr' ? ` Génère ${iv} variations visuelles distinctes.` : ` Generate ${iv} distinct visual variations.`;
     }
 
     if (ha) {
@@ -332,7 +338,7 @@ Génère un prompt ultra-optimisé pour cette idée. Réponds UNIQUEMENT en JSON
     return res.json({
       prompt: fallbackPrompt,
       tips: [...template.tips, '⚠️ Généré en mode hors-ligne (templates)'],
-      variations: template.variations(kw)
+      variations: template.variations(kw, lg)
     });
   }
 });
