@@ -6,7 +6,7 @@ import {
   Sparkles, Copy, Check, Loader2, Lightbulb, Shuffle,
   Zap, X, Clock, RotateCcw,
   Keyboard, ArrowRight, Ban, Ratio, Palette, Settings2,
-  Wand2, BrainCircuit, Rocket, Star, Paperclip, Layers
+  Wand2, BrainCircuit, Rocket, Star, Paperclip, Layers, LayoutGrid
 } from 'lucide-react'
 
 // ─── Configuration des types ───
@@ -298,7 +298,7 @@ function CopyButton({ text, label = 'Copier', size = 'sm' }) {
     <button
       onClick={handleCopy}
       className={`flex items-center gap-2 rounded-xl font-semibold transition-all duration-300 cursor-pointer hover:scale-105 ${
-        isLg ? 'px-5 py-2.5 text-sm' : 'px-3 py-1.5 rounded-lg text-xs font-medium'
+        isLg ? 'px-6 py-3 text-base' : 'px-3 py-1.5 rounded-lg text-xs font-medium'
       }`}
       style={{
         background: copied
@@ -311,7 +311,7 @@ function CopyButton({ text, label = 'Copier', size = 'sm' }) {
         boxShadow: !copied && isLg ? '0 0 18px rgba(0, 212, 255, 0.12), inset 0 1px 0 rgba(255,255,255,0.05)' : undefined,
       }}
     >
-      {copied ? <Check size={isLg ? 16 : 13} /> : <Copy size={isLg ? 16 : 13} />}
+      {copied ? <Check size={isLg ? 18 : 13} /> : <Copy size={isLg ? 18 : 13} />}
       {copied ? 'Copié !' : label}
     </button>
   )
@@ -453,7 +453,7 @@ function ResultSection({ result }) {
   if (!result) return null
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="animate-fade-in">
       {/* Toggle formatted / JSON */}
       <div className="flex items-center justify-end">
         <div
@@ -520,7 +520,7 @@ function ResultSection({ result }) {
 
           {/* Tips */}
           {result.tips && result.tips.length > 0 && (
-            <div className="glass-card p-6 animate-fade-in-delay">
+            <div className="glass-card p-6 animate-fade-in-delay" style={{ marginTop: '2rem' }}>
               <div className="flex items-center gap-2.5 mb-4">
                 <div
                   className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -551,7 +551,7 @@ function ResultSection({ result }) {
 
           {/* Variations */}
           {result.variations && result.variations.length > 0 && (
-            <div className="glass-card p-6 animate-fade-in-delay-2">
+            <div className="glass-card p-6 animate-fade-in-delay-2" style={{ marginTop: '2rem' }}>
               <div className="flex items-center gap-2.5 mb-4">
                 <div
                   className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -662,11 +662,11 @@ function HistoryPanel({ history, onSelect, onClear }) {
  * @param {(tag: string) => void} props.onToggleTag - Callback de toggle d'un tag
  * @param {() => void} props.onClearTags - Callback pour tout désélectionner
  */
+const CATEGORY_PALETTE = ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#00d4ff', '#f97316']
+
 function SuggestionPanel({ type, selectedTags, onToggleTag, onClearTags }) {
   const categories = TYPE_SUGGESTIONS[type]
   if (!categories) return null
-
-  const typeColor = TYPES.find(t => t.id === type)?.color || 'var(--accent)'
 
   return (
     <div className="animate-fade-in">
@@ -689,37 +689,40 @@ function SuggestionPanel({ type, selectedTags, onToggleTag, onClearTags }) {
         )}
       </div>
       <div className="glass-card p-4 space-y-3">
-        {categories.map((category) => (
-          <div key={category.id}>
-            <span
-              className="text-xs font-medium mb-1.5 block uppercase tracking-wider"
-              style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}
-            >
-              {category.label}
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {category.tags.map((tag) => {
-                const isSelected = selectedTags.includes(tag)
-                return (
-                  <button
-                    key={tag}
-                    onClick={() => onToggleTag(tag)}
-                    className="suggestion-tag"
-                    style={{
-                      background: isSelected ? `${typeColor}20` : 'rgba(0, 212, 255, 0.04)',
-                      color: isSelected ? typeColor : 'var(--text-muted)',
-                      border: `1px solid ${isSelected ? `${typeColor}40` : 'rgba(0, 212, 255, 0.06)'}`,
-                      boxShadow: isSelected ? `0 0 8px ${typeColor}15` : 'none',
-                    }}
-                  >
-                    {isSelected && <span className="suggestion-check">&#10003;</span>}
-                    {tag}
-                  </button>
-                )
-              })}
+        {categories.map((category, catIndex) => {
+          const catColor = CATEGORY_PALETTE[catIndex % CATEGORY_PALETTE.length]
+          return (
+            <div key={category.id}>
+              <span
+                className="text-xs font-semibold mb-1.5 block uppercase tracking-wider"
+                style={{ color: catColor, fontSize: '0.65rem', opacity: 0.85 }}
+              >
+                {category.label}
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {category.tags.map((tag) => {
+                  const isSelected = selectedTags.includes(tag)
+                  return (
+                    <button
+                      key={tag}
+                      onClick={() => onToggleTag(tag)}
+                      className="suggestion-tag"
+                      style={{
+                        background: isSelected ? `${catColor}22` : `${catColor}0a`,
+                        color: isSelected ? catColor : `${catColor}b3`,
+                        border: `1px solid ${isSelected ? `${catColor}50` : `${catColor}22`}`,
+                        boxShadow: isSelected ? `0 0 8px ${catColor}20` : 'none',
+                      }}
+                    >
+                      {isSelected && <span className="suggestion-check">&#10003;</span>}
+                      {tag}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
@@ -1050,6 +1053,9 @@ export default function App() {
         }}
       />
 
+      {/* ─── Barre dégradée arc-en-ciel ─── */}
+      <div className="rainbow-bar" />
+
       {/* ─── Aurora background ─── */}
       <div className="aurora-bg" />
 
@@ -1057,13 +1063,27 @@ export default function App() {
       <FloatingParticles />
 
       {/* ─── Header compact ─── */}
-      <header className="relative pt-4 pb-3 text-center" style={{ zIndex: 1 }}>
+      <header className="relative pt-6 pb-3 px-16 sm:px-4 text-center" style={{ zIndex: 1 }}>
+        <a
+          href="https://saas.ced-it.be/dashboard"
+          className="absolute right-4 top-4 flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all hover:brightness-125"
+          style={{
+            border: '1px solid rgba(0, 212, 255, 0.5)',
+            color: 'var(--accent)',
+            background: 'rgba(0, 212, 255, 0.05)',
+            textDecoration: 'none',
+            letterSpacing: '0.03em',
+          }}
+        >
+          <LayoutGrid size={14} />
+          SaaS
+        </a>
         <div className="animate-fade-in">
           <div className="flex items-center justify-center gap-3 mb-1">
             <img
               src="/logo-ced-it.png"
               alt="Ced-IT"
-              className="h-30 animate-float object-contain"
+              className="h-12 sm:h-16 md:h-24 animate-float object-contain"
               style={{
                 filter: 'drop-shadow(0 0 12px rgba(0, 212, 255, 0.4))',
               }}
@@ -1078,7 +1098,25 @@ export default function App() {
               </div>
             )}
           </div>
-          <div className="flex items-center justify-center gap-2">
+          {/* ─── Strip colorée des types ─── */}
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
+            {TYPES.map(({ id, label, icon: Icon, color }) => (
+              <span
+                key={id}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
+                style={{
+                  background: `${color}18`,
+                  color: color,
+                  border: `1px solid ${color}45`,
+                }}
+              >
+                <Icon size={11} />
+                {label}
+              </span>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
             <span className="text-xs shimmer-text font-medium">
               Transformez vos idées en prompts optimisés
             </span>
@@ -1114,7 +1152,7 @@ export default function App() {
 
       {/* ─── Main ─── */}
       <main className="relative w-full px-4 sm:px-6 lg:px-10 xl:px-16 pb-10" style={{ zIndex: 1 }}>
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10 xl:gap-14">
 
           {/* ─── Colonne gauche : Formulaire ─── */}
           <div className="space-y-4 lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto lg:pr-2 custom-scrollbar">
@@ -1220,20 +1258,20 @@ export default function App() {
                     }}
                     className="group relative flex items-center gap-2.5 p-3 rounded-xl transition-all duration-300 cursor-pointer text-left overflow-hidden"
                     style={{
-                      background: type === id ? 'var(--secondary)' : 'transparent',
-                      border: `1px solid ${type === id ? color : 'rgba(0, 212, 255, 0.08)'}`,
+                      background: type === id ? 'var(--secondary)' : `${color}0d`,
+                      border: `1px solid ${type === id ? color : `${color}30`}`,
                       boxShadow: type === id ? `0 0 20px ${color}30` : 'none',
                     }}
                     onMouseEnter={(e) => {
                       if (type !== id) {
-                        e.currentTarget.style.borderColor = `${color}50`
-                        e.currentTarget.style.background = 'var(--surface-hover)'
+                        e.currentTarget.style.borderColor = `${color}60`
+                        e.currentTarget.style.background = `${color}1a`
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (type !== id) {
-                        e.currentTarget.style.borderColor = 'rgba(0, 212, 255, 0.08)'
-                        e.currentTarget.style.background = 'transparent'
+                        e.currentTarget.style.borderColor = `${color}30`
+                        e.currentTarget.style.background = `${color}0d`
                       }
                     }}
                   >
@@ -1246,19 +1284,19 @@ export default function App() {
                     <div
                       className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-all duration-300"
                       style={{
-                        background: type === id ? `${color}20` : 'rgba(255,255,255,0.03)',
+                        background: type === id ? `${color}20` : `${color}15`,
                       }}
                     >
                       <Icon
                         size={18}
-                        style={{ color: type === id ? color : 'var(--text-muted)' }}
+                        style={{ color: type === id ? color : `${color}cc` }}
                         className="transition-colors duration-300"
                       />
                     </div>
                     <div>
                       <span
                         className="block text-sm font-semibold transition-colors duration-300"
-                        style={{ color: type === id ? 'white' : 'var(--text)' }}
+                        style={{ color: type === id ? 'white' : `${color}ee` }}
                       >
                         {label}
                       </span>

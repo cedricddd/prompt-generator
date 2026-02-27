@@ -6,11 +6,11 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     host: true,
-    hmr: {
-      host: 'prompt-generator.ced-it.be',
-      protocol: 'wss',
-      clientPort: 443
-    },
+    port: 4749,
+    strictPort: true,
+    hmr: process.env.HMR_HOST
+      ? { host: process.env.HMR_HOST, protocol: 'wss', clientPort: 443 }
+      : true,
     proxy: {
       '/api': 'http://localhost:3001'
     }

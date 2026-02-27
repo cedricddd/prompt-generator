@@ -126,6 +126,10 @@ export async function useCredit(token) {
  * - { status: 'error' } en cas d'erreur réseau (accès offline refusé)
  */
 export async function checkAppAccess() {
+  if (import.meta.env.VITE_BYPASS_AUTH === 'true') {
+    return { status: 'authorized', accessType: 'dev', email: 'dev@local', trialExpiresAt: null, creditsRemaining: null }
+  }
+
   consumeTokenFromUrl()
 
   const token = getStoredToken()
