@@ -8,22 +8,24 @@ import {
   Keyboard, ArrowRight, Ban, Ratio, Palette, Settings2,
   Wand2, BrainCircuit, Rocket, Star, Paperclip, Layers, LayoutGrid
 } from 'lucide-react'
+import { useLanguage } from './contexts/LanguageContext'
+import { LanguageSwitcher } from './components/LanguageSwitcher'
 
-// ─── Configuration des types ───
-const TYPES = [
-  { id: 'image', label: 'Image', icon: Image, desc: 'Visuels & illustrations', color: '#a855f7' },
-  { id: 'document', label: 'Document', icon: FileText, desc: 'Textes & articles', color: '#3b82f6' },
-  { id: 'webpage', label: 'Page Web', icon: Globe, desc: 'Sites & landing pages', color: '#10b981' },
-  { id: 'code', label: 'Code', icon: Code, desc: 'Dev & programmation', color: '#f59e0b' },
-  { id: 'email', label: 'Email', icon: Mail, desc: 'Communications', color: '#ef4444' },
-  { id: 'social', label: 'Social', icon: Share2, desc: 'Réseaux sociaux', color: '#ec4899' },
+// ─── Configuration des types (labels depuis i18n) ───
+const TYPES_CONFIG = [
+  { id: 'image', icon: Image, color: '#a855f7' },
+  { id: 'document', icon: FileText, color: '#3b82f6' },
+  { id: 'webpage', icon: Globe, color: '#10b981' },
+  { id: 'code', icon: Code, color: '#f59e0b' },
+  { id: 'email', icon: Mail, color: '#ef4444' },
+  { id: 'social', icon: Share2, color: '#ec4899' },
 ]
 
-const STYLES = [
-  { id: 'professional', label: 'Professionnel', icon: '🎯' },
-  { id: 'creative', label: 'Créatif', icon: '🎨' },
-  { id: 'technical', label: 'Technique', icon: '⚙️' },
-  { id: 'casual', label: 'Casual', icon: '💬' },
+const STYLES_CONFIG = [
+  { id: 'professional', icon: '🎯' },
+  { id: 'creative', icon: '🎨' },
+  { id: 'technical', icon: '⚙️' },
+  { id: 'casual', icon: '💬' },
 ]
 
 const LANGUAGES = [
@@ -31,194 +33,18 @@ const LANGUAGES = [
   { id: 'en', label: 'English', flag: '🇬🇧' },
 ]
 
-const ASPECT_RATIOS = [
-  { id: '16:9', label: '16:9', desc: 'Paysage' },
-  { id: '4:3', label: '4:3', desc: 'Standard' },
-  { id: '1:1', label: '1:1', desc: 'Carré' },
-  { id: '9:16', label: '9:16', desc: 'Portrait' },
+const ASPECT_RATIOS_CONFIG = [
+  { id: '16:9', label: '16:9' },
+  { id: '4:3', label: '4:3' },
+  { id: '1:1', label: '1:1' },
+  { id: '9:16', label: '9:16' },
 ]
 
-/**
- * Configuration des suggestions enrichies par type de génération.
- * Chaque type contient des catégories de tags cliquables
- * permettant d'enrichir automatiquement le prompt.
- * @type {Record<string, Array<{id: string, label: string, tags: string[]}>>}
- */
-const TYPE_SUGGESTIONS = {
-  image: [
-    {
-      id: 'style',
-      label: 'Styles artistiques',
-      tags: [
-        'Studio Ghibli', 'Cyberpunk', 'Art Nouveau', 'Pixar', 'Photoréaliste',
-        'Pop Art', 'Impressionnisme', 'Tim Burton', 'Anime', 'Aquarelle',
-        'Peinture à l\'huile', 'Vaporwave', 'Steampunk', 'Art Déco',
-        'Surréalisme', 'Minimaliste', 'Rétro vintage', 'Isométrique 3D',
-      ],
-    },
-    {
-      id: 'lighting',
-      label: 'Éclairage',
-      tags: [
-        'Golden Hour', 'Néon', 'Studio', 'Dramatique', 'Clair-obscur',
-        'Rim Light', 'Contre-jour', 'Cinématique', 'Volumétrique', 'Naturel doux',
-      ],
-    },
-    {
-      id: 'composition',
-      label: 'Composition',
-      tags: [
-        'Gros plan', 'Plan large', 'Vue aérienne', 'Macro', 'Symétrique',
-        'Règle des tiers', 'Vue plongeante', 'Contre-plongée', 'Panoramique',
-      ],
-    },
-    {
-      id: 'mood',
-      label: 'Ambiance',
-      tags: [
-        'Mystérieux', 'Épique', 'Mélancolique', 'Onirique', 'Futuriste',
-        'Post-apocalyptique', 'Féérique', 'Dystopique', 'Serein', 'Sombre',
-      ],
-    },
-  ],
-  document: [
-    {
-      id: 'format',
-      label: 'Format',
-      tags: [
-        'Article', 'Rapport', 'Guide pratique', 'Tutoriel', 'Brief créatif',
-        'Livre blanc', 'Étude de cas', 'Newsletter', 'Fiche technique', 'Manifeste',
-      ],
-    },
-    {
-      id: 'tone',
-      label: 'Ton',
-      tags: [
-        'Formel', 'Académique', 'Persuasif', 'Narratif', 'Vulgarisé',
-        'Journalistique', 'Inspirant', 'Didactique', 'Satirique', 'Poétique',
-      ],
-    },
-    {
-      id: 'audience',
-      label: 'Public cible',
-      tags: [
-        'Débutants', 'Experts', 'Grand public', 'Étudiants',
-        'Professionnels', 'Décideurs', 'Investisseurs', 'Développeurs',
-      ],
-    },
-  ],
-  webpage: [
-    {
-      id: 'design',
-      label: 'Design',
-      tags: [
-        'Minimaliste', 'Glassmorphism', 'Brutalist', 'Corporate', 'Dark mode',
-        'Néomorphisme', 'Gradient moderne', 'One-page', 'Parallax', 'Bento Grid',
-      ],
-    },
-    {
-      id: 'sections',
-      label: 'Sections',
-      tags: [
-        'Hero', 'Features', 'Témoignages', 'Pricing', 'FAQ',
-        'Blog', 'Portfolio', 'Contact', 'Timeline', 'Statistiques',
-      ],
-    },
-    {
-      id: 'tech',
-      label: 'Technologies',
-      tags: [
-        'HTML/CSS', 'React', 'Vue.js', 'Tailwind CSS', 'Next.js',
-        'Animations GSAP', 'Three.js', 'Framer Motion', 'Bootstrap',
-      ],
-    },
-  ],
-  code: [
-    {
-      id: 'language',
-      label: 'Langage',
-      tags: [
-        'JavaScript', 'TypeScript', 'Python', 'Java', 'C#',
-        'Go', 'Rust', 'PHP', 'Swift', 'Kotlin',
-      ],
-    },
-    {
-      id: 'pattern',
-      label: 'Patterns & Architecture',
-      tags: [
-        'MVC', 'REST API', 'GraphQL', 'Microservices', 'Clean Architecture',
-        'TDD', 'SOLID', 'CQRS', 'Event-driven', 'Hexagonal',
-      ],
-    },
-    {
-      id: 'framework',
-      label: 'Frameworks',
-      tags: [
-        'React', 'Vue', 'Angular', 'Express', 'NestJS',
-        'Django', 'FastAPI', 'Spring Boot', '.NET', 'Laravel',
-      ],
-    },
-  ],
-  email: [
-    {
-      id: 'emailType',
-      label: 'Type d\'email',
-      tags: [
-        'Prospection', 'Relance', 'Newsletter', 'Bienvenue', 'Transactionnel',
-        'Événement', 'Promotion', 'Feedback', 'Partenariat', 'Réactivation',
-      ],
-    },
-    {
-      id: 'emailTone',
-      label: 'Ton',
-      tags: [
-        'B2B', 'B2C', 'Formel', 'Conversationnel', 'Urgence',
-        'Personnalisé', 'Corporate', 'Amical', 'Exclusif',
-      ],
-    },
-    {
-      id: 'elements',
-      label: 'Éléments clés',
-      tags: [
-        'CTA puissant', 'A/B Test', 'Objet accrocheur', 'Séquence multi-email',
-        'Social proof', 'Offre limitée', 'Storytelling', 'Données chiffrées',
-      ],
-    },
-  ],
-  social: [
-    {
-      id: 'platform',
-      label: 'Plateforme',
-      tags: [
-        'Twitter/X', 'LinkedIn', 'Instagram', 'TikTok',
-        'Facebook', 'YouTube', 'Threads', 'Pinterest',
-      ],
-    },
-    {
-      id: 'socialFormat',
-      label: 'Format',
-      tags: [
-        'Post', 'Thread', 'Carrousel', 'Story', 'Reel',
-        'Short', 'Infographie', 'Sondage', 'Live', 'Behind the scenes',
-      ],
-    },
-    {
-      id: 'strategy',
-      label: 'Stratégie',
-      tags: [
-        'Hook viral', 'Storytelling', 'Engagement', 'Éducatif',
-        'Controverse positive', 'Tutorial', 'Avant/Après', 'Défi/Challenge',
-        'Tendance', 'UGC',
-      ],
-    },
-  ],
-}
-
-const IMAGE_VARIANTS = [
-  { id: 1, label: '1', desc: 'Unique' },
-  { id: 2, label: '2', desc: 'Duo' },
-  { id: 3, label: '3', desc: 'Triple' },
-  { id: 4, label: '4', desc: 'Quadruple' },
+const IMAGE_VARIANTS_CONFIG = [
+  { id: 1, label: '1' },
+  { id: 2, label: '2' },
+  { id: 3, label: '3' },
+  { id: 4, label: '4' },
 ]
 
 const MAX_CHARS = 500
@@ -283,14 +109,16 @@ function FloatingParticles() {
 }
 
 // ─── Composant CopyButton ───
-function CopyButton({ text, label = 'Copier', size = 'sm' }) {
+function CopyButton({ text, label, size = 'sm' }) {
+  const { t } = useLanguage()
   const [copied, setCopied] = useState(false)
   const isLg = size === 'lg'
+  const displayLabel = label ?? t.copy.copy
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(text)
     setCopied(true)
-    toast.success('Copié dans le presse-papier !')
+    toast.success(t.copy.clipboard)
     setTimeout(() => setCopied(false), 2000)
   }
 
@@ -312,20 +140,15 @@ function CopyButton({ text, label = 'Copier', size = 'sm' }) {
       }}
     >
       {copied ? <Check size={isLg ? 18 : 13} /> : <Copy size={isLg ? 18 : 13} />}
-      {copied ? 'Copié !' : label}
+      {copied ? t.copy.copied : displayLabel}
     </button>
   )
 }
 
 // ─── Composant Loading (orbital enrichi) ───
 function LoadingState() {
-  const tips = [
-    'Analyse de votre idée...',
-    'Optimisation du prompt...',
-    'Génération des variations...',
-    'Ajout des détails techniques...',
-    'Peaufinage du résultat...',
-  ]
+  const { t } = useLanguage()
+  const tips = t.loading.tips
   const [tipIndex, setTipIndex] = useState(0)
 
   useEffect(() => {
@@ -333,7 +156,7 @@ function LoadingState() {
       setTipIndex(prev => (prev + 1) % tips.length)
     }, 2000)
     return () => clearInterval(interval)
-  }, [])
+  }, [tips.length])
 
   return (
     <div className="flex flex-col items-center gap-6 py-16 animate-fade-in">
@@ -406,6 +229,7 @@ function LoadingState() {
 
 // ─── Composant vue JSON avec coloration syntaxique ───
 function JsonView({ data }) {
+  const { t } = useLanguage()
   const json = JSON.stringify(data, null, 2)
 
   const highlighted = json.replace(
@@ -428,7 +252,7 @@ function JsonView({ data }) {
           </div>
           <h3 className="text-base font-bold text-white">JSON</h3>
         </div>
-        <CopyButton text={json} label="Copier JSON" />
+        <CopyButton text={json} label={t.copy.copyJson} />
       </div>
       <pre
         className="rounded-xl p-4 text-sm leading-relaxed overflow-x-auto custom-scrollbar"
@@ -448,6 +272,7 @@ function JsonView({ data }) {
 
 // ─── Composant Résultat ───
 function ResultSection({ result }) {
+  const { t } = useLanguage()
   const [viewMode, setViewMode] = useState('formatted')
 
   if (!result) return null
@@ -470,7 +295,7 @@ function ResultSection({ result }) {
             }}
           >
             <Sparkles size={12} />
-            Formaté
+            {t.result.formatted}
           </button>
           <button
             onClick={() => setViewMode('json')}
@@ -501,7 +326,7 @@ function ResultSection({ result }) {
                 >
                   <Sparkles size={16} style={{ color: 'var(--accent)' }} />
                 </div>
-                <h3 className="text-base font-bold text-white">Prompt Optimisé</h3>
+                <h3 className="text-base font-bold text-white">{t.result.optimizedPrompt}</h3>
               </div>
               <CopyButton text={result.prompt} size="lg" />
             </div>
@@ -528,7 +353,7 @@ function ResultSection({ result }) {
                 >
                   <Lightbulb size={16} style={{ color: 'var(--warning)' }} />
                 </div>
-                <h3 className="text-base font-bold text-white">Conseils</h3>
+                <h3 className="text-base font-bold text-white">{t.result.tips}</h3>
               </div>
               <ul className="space-y-3">
                 {result.tips.map((tip, i) => (
@@ -559,7 +384,7 @@ function ResultSection({ result }) {
                 >
                   <Shuffle size={16} style={{ color: 'var(--accent)' }} />
                 </div>
-                <h3 className="text-base font-bold text-white">Variations</h3>
+                <h3 className="text-base font-bold text-white">{t.result.variations}</h3>
               </div>
               <div className="space-y-3">
                 {result.variations.map((variation, i) => (
@@ -581,7 +406,7 @@ function ResultSection({ result }) {
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="badge-pill">
-                        Variation {i + 1}
+                        {t.result.variation} {i + 1}
                       </span>
                       <CopyButton text={variation} />
                     </div>
@@ -601,6 +426,7 @@ function ResultSection({ result }) {
 
 // ─── Composant Historique ───
 function HistoryPanel({ history, onSelect, onClear }) {
+  const { t } = useLanguage()
   if (history.length === 0) return null
 
   return (
@@ -610,7 +436,7 @@ function HistoryPanel({ history, onSelect, onClear }) {
         style={{ color: 'var(--text-muted)' }}
       >
         <Clock size={13} />
-        Historique récent ({history.length})
+        {t.history.recent} ({history.length})
       </div>
 
       <div className="mt-3 space-y-2">
@@ -636,7 +462,7 @@ function HistoryPanel({ history, onSelect, onClear }) {
               <RotateCcw size={12} className="shrink-0 opacity-40 group-hover:opacity-100 transition-opacity" style={{ color: 'var(--accent)' }} />
               <span className="truncate flex-1">{item.keywords}</span>
               <span className="shrink-0 opacity-40" style={{ color: 'var(--text-muted)' }}>
-                {TYPES.find(t => t.id === item.type)?.label}
+                {t.types[item.type]?.label}
               </span>
             </button>
           ))}
@@ -645,7 +471,7 @@ function HistoryPanel({ history, onSelect, onClear }) {
             className="text-xs transition-colors duration-200 cursor-pointer hover:underline"
             style={{ color: 'var(--text-muted)' }}
           >
-            Effacer l'historique
+            {t.history.clear}
           </button>
         </div>
     </div>
@@ -665,14 +491,15 @@ function HistoryPanel({ history, onSelect, onClear }) {
 const CATEGORY_PALETTE = ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#00d4ff', '#f97316']
 
 function SuggestionPanel({ type, selectedTags, onToggleTag, onClearTags }) {
-  const categories = TYPE_SUGGESTIONS[type]
+  const { t } = useLanguage()
+  const categories = t.typeSuggestions[type]
   if (!categories) return null
 
   return (
     <div className="animate-fade-in">
       <div className="w-full section-label mb-2">
         <Wand2 size={14} />
-        Enrichir le prompt
+        {t.suggestions.enrich}
         {selectedTags.length > 0 && (
           <span className="badge-pill" style={{ fontSize: '0.65rem' }}>
             {selectedTags.length}
@@ -684,7 +511,7 @@ function SuggestionPanel({ type, selectedTags, onToggleTag, onClearTags }) {
             className="text-xs cursor-pointer transition-colors duration-200 hover:underline ml-auto"
             style={{ color: 'var(--text-muted)' }}
           >
-            Effacer
+            {t.suggestions.clear}
           </span>
         )}
       </div>
@@ -730,11 +557,12 @@ function SuggestionPanel({ type, selectedTags, onToggleTag, onClearTags }) {
 
 // ─── État vide enrichi ───
 function EmptyState() {
+  const { t } = useLanguage()
   const features = [
-    { icon: Image, label: 'Images IA', desc: 'Midjourney, DALL-E, Stable Diffusion', color: '#a855f7' },
-    { icon: Code, label: 'Code', desc: 'Architecture clean et bonnes pratiques', color: '#f59e0b' },
-    { icon: Globe, label: 'Pages Web', desc: 'Landing pages et sites modernes', color: '#10b981' },
-    { icon: FileText, label: 'Documents', desc: 'Articles, rapports et contenus', color: '#3b82f6' },
+    { icon: Image, label: t.emptyState.features.images.label, desc: t.emptyState.features.images.desc, color: '#a855f7' },
+    { icon: Code, label: t.emptyState.features.code.label, desc: t.emptyState.features.code.desc, color: '#f59e0b' },
+    { icon: Globe, label: t.emptyState.features.webpages.label, desc: t.emptyState.features.webpages.desc, color: '#10b981' },
+    { icon: FileText, label: t.emptyState.features.documents.label, desc: t.emptyState.features.documents.desc, color: '#3b82f6' },
   ]
 
   return (
@@ -797,7 +625,7 @@ function EmptyState() {
         }}
       >
         <Sparkles size={10} />
-        IA Générative
+        {t.emptyState.badge}
       </div>
       <h3
         className="text-3xl font-black mb-3 tracking-tight"
@@ -809,10 +637,10 @@ function EmptyState() {
           filter: 'drop-shadow(0 0 20px rgba(0, 212, 255, 0.35))',
         }}
       >
-        Prêt à créer
+        {t.emptyState.title}
       </h3>
       <p className="text-sm leading-relaxed max-w-sm mx-auto mb-2" style={{ color: 'var(--text-muted)' }}>
-        Décrivez votre idée et laissez l'IA transformer vos mots en un prompt parfaitement optimisé
+        {t.emptyState.subtitle}
       </p>
 
       {/* Gradient separator */}
@@ -847,17 +675,17 @@ function EmptyState() {
       <div className="flex items-center justify-center gap-2 text-xs mb-5" style={{ color: 'var(--text-muted)' }}>
         <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(0, 212, 255, 0.05)' }}>
           <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: 'var(--accent)', color: 'var(--primary)' }}>1</span>
-          Décrivez
+          {t.emptyState.steps.describe}
         </span>
         <ArrowRight size={12} style={{ color: 'var(--accent)', opacity: 0.4 }} />
         <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(0, 212, 255, 0.05)' }}>
           <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: 'var(--accent)', color: 'var(--primary)' }}>2</span>
-          Configurez
+          {t.emptyState.steps.configure}
         </span>
         <ArrowRight size={12} style={{ color: 'var(--accent)', opacity: 0.4 }} />
         <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(0, 212, 255, 0.05)' }}>
           <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: 'var(--accent)', color: 'var(--primary)' }}>3</span>
-          Générez
+          {t.emptyState.steps.generate}
         </span>
       </div>
 
@@ -868,7 +696,7 @@ function EmptyState() {
         </span>
         <span className="badge-pill">
           <Zap size={11} />
-          Instantané
+          {t.emptyState.instant}
         </span>
       </div>
     </div>
@@ -877,6 +705,17 @@ function EmptyState() {
 
 // ─── App principale ───
 export default function App() {
+  const { t } = useLanguage()
+
+  const TYPES = TYPES_CONFIG.map(cfg => ({
+    ...cfg,
+    label: t.types[cfg.id].label,
+    desc: t.types[cfg.id].desc,
+  }))
+  const STYLES = STYLES_CONFIG.map(cfg => ({ ...cfg, label: t.styles[cfg.id] }))
+  const ASPECT_RATIOS = ASPECT_RATIOS_CONFIG.map(cfg => ({ ...cfg, desc: t.aspectRatios[cfg.id] }))
+  const IMAGE_VARIANTS = IMAGE_VARIANTS_CONFIG.map(cfg => ({ ...cfg, desc: t.imageVariants[cfg.id] }))
+
   const [keywords, setKeywords] = useState('')
   const [type, setType] = useState('image')
   const [style, setStyle] = useState('professional')
@@ -950,7 +789,7 @@ export default function App() {
 
   const handleGenerate = async () => {
     if (!keywords.trim()) {
-      toast.error('Entrez une idée ou des mots-clés')
+      toast.error(t.toasts.noKeywords)
       return
     }
 
@@ -1008,9 +847,9 @@ export default function App() {
         artistReference: artistReference.trim(),
         imageVariants,
       })
-      toast.success('Prompt généré avec succès !')
+      toast.success(t.toasts.success)
     } catch (err) {
-      toast.error('Erreur lors de la génération. Vérifiez que le serveur est lancé.')
+      toast.error(t.toasts.error)
       console.error(err)
     } finally {
       setLoading(false)
@@ -1063,21 +902,24 @@ export default function App() {
       <FloatingParticles />
 
       {/* ─── Header compact ─── */}
-      <header className="relative pt-6 pb-3 px-16 sm:px-4 text-center" style={{ zIndex: 1 }}>
-        <a
-          href="https://saas.ced-it.be/dashboard"
-          className="absolute right-4 top-4 flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all hover:brightness-125"
-          style={{
-            border: '1px solid rgba(0, 212, 255, 0.5)',
-            color: 'var(--accent)',
-            background: 'rgba(0, 212, 255, 0.05)',
-            textDecoration: 'none',
-            letterSpacing: '0.03em',
-          }}
-        >
-          <LayoutGrid size={14} />
-          SaaS
-        </a>
+      <header className="relative pt-6 pb-3 px-4 text-center" style={{ zIndex: 10 }}>
+        <div className="absolute right-4 top-4 flex items-center gap-2" style={{ zIndex: 1 }}>
+          <LanguageSwitcher />
+          <a
+            href="https://saas.ced-it.be/dashboard"
+            className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all hover:brightness-125"
+            style={{
+              border: '1px solid rgba(0, 212, 255, 0.5)',
+              color: 'var(--accent)',
+              background: 'rgba(0, 212, 255, 0.05)',
+              textDecoration: 'none',
+              letterSpacing: '0.03em',
+            }}
+          >
+            <LayoutGrid size={14} />
+            SaaS
+          </a>
+        </div>
         <div className="animate-fade-in">
           <div className="flex items-center justify-center gap-3 mb-1">
             <img
@@ -1118,7 +960,7 @@ export default function App() {
 
           <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
             <span className="text-xs shimmer-text font-medium">
-              Transformez vos idées en prompts optimisés
+              {t.header.tagline}
             </span>
             <span className="badge-pill" style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem' }}>
               <Keyboard size={9} />
@@ -1135,13 +977,13 @@ export default function App() {
                   color: creditsRemaining === 0 ? '#ef4444' : 'var(--accent)',
                 }}
               >
-                ✦ {creditsRemaining} crédit{creditsRemaining !== 1 ? 's' : ''}
+                ✦ {creditsRemaining} {creditsRemaining !== 1 ? t.credits.credits : t.credits.credit}
                 {creditsRemaining === 0 && (
                   <a
                     href="https://saas.ced-it.be/dashboard/credits"
                     style={{ marginLeft: '0.3rem', textDecoration: 'underline' }}
                   >
-                    Acheter →
+                    {t.credits.buy}
                   </a>
                 )}
               </span>
@@ -1161,7 +1003,7 @@ export default function App() {
             <div className="animate-fade-in">
               <div className="section-label mb-2">
                 <Sparkles size={14} />
-                Votre idée
+                {t.form.yourIdea}
               </div>
               <div
                 className="relative rounded-2xl transition-all duration-300"
@@ -1176,7 +1018,7 @@ export default function App() {
                     if (e.target.value.length <= MAX_CHARS) setKeywords(e.target.value)
                   }}
                   onKeyDown={handleKeyDown}
-                  placeholder="Décrivez votre idée en quelques mots..."
+                  placeholder={t.form.ideaPlaceholder}
                   rows={4}
                   className="w-full rounded-2xl p-5 pb-10 text-base resize-none transition-all duration-300 outline-none"
                   style={{
@@ -1203,7 +1045,7 @@ export default function App() {
                         style={{ color: 'var(--text-muted)' }}
                       >
                         <X size={12} />
-                        Effacer
+                        {t.form.clear}
                       </button>
                     )}
                   </div>
@@ -1246,7 +1088,7 @@ export default function App() {
             <div className="animate-fade-in-delay">
               <div className="section-label mb-2">
                 <Zap size={14} />
-                Type de génération
+                {t.form.generationType}
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {TYPES.map(({ id, label, icon: Icon, desc, color }) => (
@@ -1324,7 +1166,7 @@ export default function App() {
               {/* Style */}
               <div>
                 <div className="section-label mb-2">
-                  Style
+                  {t.form.style}
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {STYLES.map(({ id, label, icon }) => (
@@ -1355,7 +1197,7 @@ export default function App() {
               {/* Language */}
               <div>
                 <div className="section-label mb-2">
-                  Langue du prompt
+                  {t.form.promptLanguage}
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {LANGUAGES.map(({ id, label, flag }) => (
@@ -1424,10 +1266,10 @@ export default function App() {
                     className="block text-sm font-semibold transition-colors duration-300"
                     style={{ color: hasAttachments ? 'white' : 'var(--text)' }}
                   >
-                    Fichiers attachés
+                    {t.form.attachments}
                   </span>
                   <span className="block text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    Le prompt inclura l'analyse de fichiers joints
+                    {t.form.attachmentsDesc}
                   </span>
                 </div>
                 {/* Toggle switch */}
@@ -1455,7 +1297,7 @@ export default function App() {
               <div className="animate-fade-in">
                 <div className="w-full section-label mb-2">
                   <Settings2 size={14} />
-                  Options avancées
+                  {t.form.advancedOptions}
                 </div>
                 <div className="space-y-4">
 
@@ -1466,7 +1308,7 @@ export default function App() {
                       style={{ color: 'var(--text-muted)' }}
                     >
                       <Ratio size={13} />
-                      Ratio d'image
+                      {t.form.aspectRatio}
                     </label>
                     <div className="flex gap-2">
                       {ASPECT_RATIOS.map(({ id, label, desc }) => (
@@ -1507,7 +1349,7 @@ export default function App() {
                       style={{ color: 'var(--text-muted)' }}
                     >
                       <Layers size={13} />
-                      Nombre de variantes
+                      {t.form.variantCount}
                     </label>
                     <div className="flex gap-2">
                       {IMAGE_VARIANTS.map(({ id, label, desc }) => (
@@ -1548,13 +1390,13 @@ export default function App() {
                       style={{ color: 'var(--text-muted)' }}
                     >
                       <Ban size={13} />
-                      Mots-clés négatifs (à exclure)
+                      {t.form.negativeKeywords}
                     </label>
                     <input
                       type="text"
                       value={negativeKeywords}
                       onChange={(e) => setNegativeKeywords(e.target.value)}
-                      placeholder="Ex: flou, texte, déformé, mains mal dessinées..."
+                      placeholder={t.form.negativeKeywordsPlaceholder}
                       className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all duration-300"
                       style={{
                         background: 'var(--secondary)',
@@ -1579,13 +1421,13 @@ export default function App() {
                       style={{ color: 'var(--text-muted)' }}
                     >
                       <Palette size={13} />
-                      Style ou artiste de référence
+                      {t.form.artistReference}
                     </label>
                     <input
                       type="text"
                       value={artistReference}
                       onChange={(e) => setArtistReference(e.target.value)}
-                      placeholder="Ex: Studio Ghibli, impressionnisme, Van Gogh..."
+                      placeholder={t.form.artistReferencePlaceholder}
                       className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all duration-300"
                       style={{
                         background: 'var(--secondary)',
@@ -1632,12 +1474,12 @@ export default function App() {
               {loading ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
-                  Génération en cours...
+                  {t.form.generating}
                 </>
               ) : (
                 <>
                   <Sparkles size={18} className="group-hover:animate-spin" />
-                  Générer le prompt
+                  {t.form.generate}
                 </>
               )}
             </button>
@@ -1679,7 +1521,7 @@ export default function App() {
             <>
               <span style={{ color: 'rgba(0, 212, 255, 0.3)' }}>|</span>
               <span style={{ opacity: 0.6 }}>
-                {generationCount} prompt{generationCount > 1 ? 's' : ''} créé{generationCount > 1 ? 's' : ''} avec cette session
+{generationCount} prompt{generationCount > 1 ? 's' : ''} {t.credits.sessionSuffix}
               </span>
             </>
           )}

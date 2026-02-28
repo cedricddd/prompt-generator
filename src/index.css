@@ -163,6 +163,11 @@ body {
   100% { transform: translateY(-100vh) translateX(20px) scale(0.5); opacity: 0; }
 }
 
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-8px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
 @keyframes particleDrift {
   0%, 100% { transform: translateY(0) translateX(0); }
   25% { transform: translateY(-25vh) translateX(15px); }
