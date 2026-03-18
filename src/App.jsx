@@ -5,8 +5,11 @@ import {
   Sparkles, Copy, Check, Loader2, Lightbulb, Shuffle,
   Zap, X, Clock, RotateCcw, ChevronDown, ChevronUp,
   Keyboard, ArrowRight, Ban, Ratio, Palette, Settings2,
-  Wand2, BrainCircuit, Rocket, Star, Paperclip, Layers
+  Wand2, BrainCircuit, Rocket, Star, Paperclip, Layers, LayoutGrid
 } from 'lucide-react'
+import { LanguageSwitcher } from './components/LanguageSwitcher.jsx'
+
+const SAAS_URL = import.meta.env.VITE_SAAS_URL || 'https://saas.ced-it.be'
 
 // ─── Configuration des types ───
 const TYPES = [
@@ -921,6 +924,32 @@ export default function App() {
 
       {/* ─── Header enrichi ─── */}
       <header className="relative pt-6 pb-5 text-center" style={{ zIndex: 1 }}>
+        {/* Boutons haut droite */}
+        <div className="absolute top-4 right-4 sm:right-6 flex items-center gap-2" style={{ zIndex: 10 }}>
+          <LanguageSwitcher />
+          <a
+            href={SAAS_URL}
+            className="flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold transition-all duration-200 no-underline"
+            style={{
+              border: '1px solid rgba(255,255,255,0.06)',
+              background: 'rgba(255,255,255,0.04)',
+              color: 'var(--text-muted)',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'rgba(0,212,255,0.4)'
+              e.currentTarget.style.background = 'rgba(0,212,255,0.05)'
+              e.currentTarget.style.color = 'var(--accent)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+              e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+              e.currentTarget.style.color = 'var(--text-muted)'
+            }}
+          >
+            <LayoutGrid size={14} />
+            <span className="hidden sm:inline font-bold tracking-wider" style={{ fontSize: '0.65rem' }}>SaaS</span>
+          </a>
+        </div>
         <div className="animate-fade-in">
           {/* Compteur de générations */}
           {generationCount > 0 && (
