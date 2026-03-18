@@ -1439,7 +1439,7 @@ export default function App() {
                       handleGenerate()
                     }}
                     disabled={!keywords.trim()}
-                    className="btn-ripple group w-full py-5 rounded-2xl text-lg font-bold transition-all duration-300 flex items-center justify-center gap-3 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed mt-4"
+                    className="btn-ripple group w-full py-6 rounded-2xl text-xl font-bold transition-all duration-300 flex items-center justify-center gap-3 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed mt-10"
                     style={{
                       background: 'linear-gradient(135deg, var(--accent), #0066ff)',
                       color: 'white',
@@ -1454,7 +1454,7 @@ export default function App() {
                       if (keywords.trim()) e.currentTarget.style.boxShadow = '0 0 30px rgba(0, 212, 255, 0.35), 0 0 60px rgba(0, 102, 255, 0.2)'
                     }}
                   >
-                    <Sparkles size={22} className="group-hover:animate-spin" />
+                    <Sparkles size={26} className="group-hover:animate-spin" />
                     Générer le prompt
                   </button>
                 </>
