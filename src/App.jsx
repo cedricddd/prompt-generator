@@ -8,6 +8,7 @@ import {
   Wand2, BrainCircuit, Rocket, Star, Paperclip, Layers, LayoutGrid
 } from 'lucide-react'
 import { LanguageSwitcher } from './components/LanguageSwitcher.jsx'
+import { useLanguage } from './contexts/LanguageContext.jsx'
 
 const SAAS_URL = import.meta.env.VITE_SAAS_URL || 'https://saas.ced-it.be'
 
@@ -285,13 +286,14 @@ function FloatingParticles() {
 }
 
 // ─── Composant CopyButton ───
-function CopyButton({ text, label = 'Copier' }) {
+function CopyButton({ text, label, t }) {
   const [copied, setCopied] = useState(false)
+  const copyLabel = label ?? (t ? t.copy.copy : 'Copier')
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(text)
     setCopied(true)
-    toast.success('Copié dans le presse-papier !')
+    toast.success(t ? t.copy.clipboard : 'Copié dans le presse-papier !')
     setTimeout(() => setCopied(false), 2000)
   }
 
@@ -306,14 +308,14 @@ function CopyButton({ text, label = 'Copier' }) {
       }}
     >
       {copied ? <Check size={13} /> : <Copy size={13} />}
-      {copied ? 'Copié !' : label}
+      {copied ? (t ? t.copy.copied : 'Copié !') : copyLabel}
     </button>
   )
 }
 
 // ─── Composant Loading (orbital enrichi) ───
-function LoadingState() {
-  const tips = [
+function LoadingState({ t }) {
+  const tips = t ? t.loading.tips : [
     'Analyse de votre idée...',
     'Optimisation du prompt...',
     'Génération des variations...',
@@ -327,7 +329,7 @@ function LoadingState() {
       setTipIndex(prev => (prev + 1) % tips.length)
     }, 2000)
     return () => clearInterval(interval)
-  }, [])
+  }, [tips.length])
 
   return (
     <div className="flex flex-col items-center gap-6 py-16 animate-fade-in">
@@ -399,7 +401,7 @@ function LoadingState() {
 }
 
 // ─── Composant Résultat ───
-function ResultSection({ result }) {
+function ResultSection({ result, t }) {
   if (!result) return null
 
   return (
@@ -414,9 +416,9 @@ function ResultSection({ result }) {
             >
               <Sparkles size={16} style={{ color: 'var(--accent)' }} />
             </div>
-            <h3 className="text-base font-bold text-white">Prompt Optimisé</h3>
+            <h3 className="text-base font-bold text-white">{t ? t.result.optimizedPrompt : 'Prompt Optimisé'}</h3>
           </div>
-          <CopyButton text={result.prompt} />
+          <CopyButton text={result.prompt} t={t} />
         </div>
         <div
           className="rounded-xl p-4 text-sm leading-relaxed whitespace-pre-wrap"
@@ -441,7 +443,7 @@ function ResultSection({ result }) {
             >
               <Lightbulb size={16} style={{ color: 'var(--warning)' }} />
             </div>
-            <h3 className="text-base font-bold text-white">Conseils</h3>
+            <h3 className="text-base font-bold text-white">{t ? t.result.tips : 'Conseils'}</h3>
           </div>
           <ul className="space-y-3">
             {result.tips.map((tip, i) => (
@@ -472,7 +474,7 @@ function ResultSection({ result }) {
             >
               <Shuffle size={16} style={{ color: 'var(--accent)' }} />
             </div>
-            <h3 className="text-base font-bold text-white">Variations</h3>
+            <h3 className="text-base font-bold text-white">{t ? t.result.variations : 'Variations'}</h3>
           </div>
           <div className="space-y-3">
             {result.variations.map((variation, i) => (
@@ -494,9 +496,9 @@ function ResultSection({ result }) {
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="badge-pill">
-                    Variation {i + 1}
+                    {t ? t.result.variation : 'Variation'} {i + 1}
                   </span>
-                  <CopyButton text={variation} />
+                  <CopyButton text={variation} t={t} />
                 </div>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--text)' }}>
                   {variation}
@@ -511,7 +513,7 @@ function ResultSection({ result }) {
 }
 
 // ─── Composant Historique ───
-function HistoryPanel({ history, onSelect, onClear }) {
+function HistoryPanel({ history, onSelect, onClear, t, types }) {
   const [open, setOpen] = useState(false)
 
   if (history.length === 0) return null
@@ -524,7 +526,7 @@ function HistoryPanel({ history, onSelect, onClear }) {
         style={{ color: 'var(--text-muted)' }}
       >
         <Clock size={13} />
-        Historique récent ({history.length})
+        {t ? t.history.recent : 'Historique récent'} ({history.length})
         {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
       </button>
 
@@ -552,7 +554,7 @@ function HistoryPanel({ history, onSelect, onClear }) {
               <RotateCcw size={12} className="shrink-0 opacity-40 group-hover:opacity-100 transition-opacity" style={{ color: 'var(--accent)' }} />
               <span className="truncate flex-1">{item.keywords}</span>
               <span className="shrink-0 opacity-40" style={{ color: 'var(--text-muted)' }}>
-                {TYPES.find(t => t.id === item.type)?.label}
+                {(types || TYPES).find(tp => tp.id === item.type)?.label}
               </span>
             </button>
           ))}
@@ -561,7 +563,7 @@ function HistoryPanel({ history, onSelect, onClear }) {
             className="text-xs transition-colors duration-200 cursor-pointer hover:underline"
             style={{ color: 'var(--text-muted)' }}
           >
-            Effacer l'historique
+            {t ? t.history.clear : "Effacer l'historique"}
           </button>
         </div>
       )}
@@ -579,17 +581,17 @@ function HistoryPanel({ history, onSelect, onClear }) {
  * @param {(tag: string) => void} props.onToggleTag - Callback de toggle d'un tag
  * @param {() => void} props.onClearTags - Callback pour tout désélectionner
  */
-function SuggestionPanel({ type, selectedTags, onToggleTag, onClearTags }) {
-  const categories = TYPE_SUGGESTIONS[type]
+function SuggestionPanel({ type, selectedTags, onToggleTag, onClearTags, t, types }) {
+  const categories = t ? t.typeSuggestions[type] : TYPE_SUGGESTIONS[type]
   if (!categories) return null
 
-  const typeColor = TYPES.find(t => t.id === type)?.color || 'var(--accent)'
+  const typeColor = (types || TYPES).find(tp => tp.id === type)?.color || 'var(--accent)'
 
   return (
     <div className="space-y-3 animate-fade-in">
       <div className="section-label mb-2">
         <Wand2 size={14} />
-        Enrichir le prompt
+        {t ? t.suggestions.enrich : 'Enrichir le prompt'}
         {selectedTags.length > 0 && (
           <span className="flex items-center gap-2 ml-auto">
             <span className="badge-pill" style={{ fontSize: '0.65rem' }}>
@@ -600,7 +602,7 @@ function SuggestionPanel({ type, selectedTags, onToggleTag, onClearTags }) {
               className="text-xs cursor-pointer transition-colors duration-200 hover:underline"
               style={{ color: 'var(--text-muted)' }}
             >
-              Effacer
+              {t ? t.suggestions.clear : 'Effacer'}
             </button>
           </span>
         )}
@@ -643,8 +645,13 @@ function SuggestionPanel({ type, selectedTags, onToggleTag, onClearTags }) {
 }
 
 // ─── État vide enrichi ───
-function EmptyState() {
-  const features = [
+function EmptyState({ t }) {
+  const features = t ? [
+    { icon: Image, label: t.emptyState.features.images.label, desc: t.emptyState.features.images.desc, color: '#a855f7' },
+    { icon: Code, label: t.emptyState.features.code.label, desc: t.emptyState.features.code.desc, color: '#f59e0b' },
+    { icon: Globe, label: t.emptyState.features.webpages.label, desc: t.emptyState.features.webpages.desc, color: '#10b981' },
+    { icon: FileText, label: t.emptyState.features.documents.label, desc: t.emptyState.features.documents.desc, color: '#3b82f6' },
+  ] : [
     { icon: Image, label: 'Images IA', desc: 'Midjourney, DALL-E, Stable Diffusion', color: '#a855f7' },
     { icon: Code, label: 'Code', desc: 'Architecture clean et bonnes pratiques', color: '#f59e0b' },
     { icon: Globe, label: 'Pages Web', desc: 'Landing pages et sites modernes', color: '#10b981' },
@@ -701,10 +708,10 @@ function EmptyState() {
       </div>
 
       <h3 className="text-lg font-bold mb-2 text-white">
-        Prêt à créer
+        {t ? t.emptyState.title : 'Prêt à créer'}
       </h3>
       <p className="text-sm leading-relaxed max-w-sm mx-auto" style={{ color: 'var(--text-muted)' }}>
-        Décrivez votre idée et laissez l'IA transformer vos mots en un prompt parfaitement optimisé
+        {t ? t.emptyState.subtitle : "Décrivez votre idée et laissez l'IA transformer vos mots en un prompt parfaitement optimisé"}
       </p>
 
       {/* Gradient separator */}
@@ -739,17 +746,17 @@ function EmptyState() {
       <div className="flex items-center justify-center gap-2 text-xs mb-5" style={{ color: 'var(--text-muted)' }}>
         <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(0, 212, 255, 0.05)' }}>
           <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: 'var(--accent)', color: 'var(--primary)' }}>1</span>
-          Décrivez
+          {t ? t.emptyState.steps.describe : 'Décrivez'}
         </span>
         <ArrowRight size={12} style={{ color: 'var(--accent)', opacity: 0.4 }} />
         <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(0, 212, 255, 0.05)' }}>
           <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: 'var(--accent)', color: 'var(--primary)' }}>2</span>
-          Configurez
+          {t ? t.emptyState.steps.configure : 'Configurez'}
         </span>
         <ArrowRight size={12} style={{ color: 'var(--accent)', opacity: 0.4 }} />
         <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(0, 212, 255, 0.05)' }}>
           <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: 'var(--accent)', color: 'var(--primary)' }}>3</span>
-          Générez
+          {t ? t.emptyState.steps.generate : 'Générez'}
         </span>
       </div>
 
@@ -760,7 +767,7 @@ function EmptyState() {
         </span>
         <span className="badge-pill">
           <Zap size={11} />
-          Instantané
+          {t ? t.emptyState.instant : 'Instantané'}
         </span>
       </div>
     </div>
@@ -769,6 +776,38 @@ function EmptyState() {
 
 // ─── App principale ───
 export default function App() {
+  const { t, locale } = useLanguage()
+
+  const TYPES_I18N = [
+    { id: 'image', label: t.types.image.label, icon: Image, desc: t.types.image.desc, color: '#a855f7' },
+    { id: 'document', label: t.types.document.label, icon: FileText, desc: t.types.document.desc, color: '#3b82f6' },
+    { id: 'webpage', label: t.types.webpage.label, icon: Globe, desc: t.types.webpage.desc, color: '#10b981' },
+    { id: 'code', label: t.types.code.label, icon: Code, desc: t.types.code.desc, color: '#f59e0b' },
+    { id: 'email', label: t.types.email.label, icon: Mail, desc: t.types.email.desc, color: '#ef4444' },
+    { id: 'social', label: t.types.social.label, icon: Share2, desc: t.types.social.desc, color: '#ec4899' },
+  ]
+
+  const STYLES_I18N = [
+    { id: 'professional', label: t.styles.professional, icon: '🎯' },
+    { id: 'creative', label: t.styles.creative, icon: '🎨' },
+    { id: 'technical', label: t.styles.technical, icon: '⚙️' },
+    { id: 'casual', label: t.styles.casual, icon: '💬' },
+  ]
+
+  const ASPECT_RATIOS_I18N = [
+    { id: '16:9', label: '16:9', desc: t.aspectRatios['16:9'] },
+    { id: '4:3', label: '4:3', desc: t.aspectRatios['4:3'] },
+    { id: '1:1', label: '1:1', desc: t.aspectRatios['1:1'] },
+    { id: '9:16', label: '9:16', desc: t.aspectRatios['9:16'] },
+  ]
+
+  const IMAGE_VARIANTS_I18N = [
+    { id: 1, label: '1', desc: t.imageVariants[1] },
+    { id: 2, label: '2', desc: t.imageVariants[2] },
+    { id: 3, label: '3', desc: t.imageVariants[3] },
+    { id: 4, label: '4', desc: t.imageVariants[4] },
+  ]
+
   const [keywords, setKeywords] = useState('')
   const [type, setType] = useState('image')
   const [style, setStyle] = useState('professional')
@@ -801,7 +840,7 @@ export default function App() {
   const handleToggleTag = useCallback((tag) => {
     setSelectedTags(prev =>
       prev.includes(tag)
-        ? prev.filter(t => t !== tag)
+        ? prev.filter(existingTag => existingTag !== tag)
         : [...prev, tag]
     )
   }, [])
@@ -826,7 +865,7 @@ export default function App() {
 
   const handleGenerate = async () => {
     if (!keywords.trim()) {
-      toast.error('Entrez une idée ou des mots-clés')
+      toast.error(t.toasts.noKeywords)
       return
     }
 
@@ -871,9 +910,9 @@ export default function App() {
         artistReference: artistReference.trim(),
         imageVariants,
       })
-      toast.success('Prompt généré avec succès !')
+      toast.success(t.toasts.success)
     } catch (err) {
-      toast.error('Erreur lors de la génération. Vérifiez que le serveur est lancé.')
+      toast.error(t.toasts.error)
       console.error(err)
     } finally {
       setLoading(false)
@@ -978,7 +1017,7 @@ export default function App() {
             </div>
           </div>
           <p className="text-sm max-w-lg mx-auto shimmer-text font-medium">
-            Transformez vos idées en prompts optimisés en quelques secondes
+            {t.header.tagline}
           </p>
 
           <div className="flex items-center justify-center gap-2 mt-3">
@@ -1005,7 +1044,7 @@ export default function App() {
             <div className="animate-fade-in">
               <div className="section-label mb-2">
                 <Sparkles size={14} />
-                Votre idée
+                {t.form.yourIdea}
               </div>
               <div
                 className="relative rounded-2xl transition-all duration-300"
@@ -1020,7 +1059,7 @@ export default function App() {
                     if (e.target.value.length <= MAX_CHARS) setKeywords(e.target.value)
                   }}
                   onKeyDown={handleKeyDown}
-                  placeholder="Décrivez votre idée en quelques mots..."
+                  placeholder={t.form.ideaPlaceholder}
                   rows={4}
                   className="w-full rounded-2xl p-5 pb-10 text-base resize-none transition-all duration-300 outline-none"
                   style={{
@@ -1047,7 +1086,7 @@ export default function App() {
                         style={{ color: 'var(--text-muted)' }}
                       >
                         <X size={12} />
-                        Effacer
+                        {t.form.clear}
                       </button>
                     )}
                   </div>
@@ -1082,6 +1121,8 @@ export default function App() {
                   history={history}
                   onSelect={handleSelectHistory}
                   onClear={clearHistory}
+                  t={t}
+                  types={TYPES_I18N}
                 />
               </div>
             </div>
@@ -1090,10 +1131,10 @@ export default function App() {
             <div className="animate-fade-in-delay">
               <div className="section-label mb-2">
                 <Zap size={14} />
-                Type de génération
+                {t.form.generationType}
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {TYPES.map(({ id, label, icon: Icon, desc, color }) => (
+                {TYPES_I18N.map(({ id, label, icon: Icon, desc, color }) => (
                   <button
                     key={id}
                     onClick={() => {
@@ -1160,6 +1201,8 @@ export default function App() {
                 selectedTags={selectedTags}
                 onToggleTag={handleToggleTag}
                 onClearTags={handleClearTags}
+                t={t}
+                types={TYPES_I18N}
               />
             </div>
 
@@ -1168,10 +1211,10 @@ export default function App() {
               {/* Style */}
               <div>
                 <div className="section-label mb-2">
-                  Style
+                  {t.form.style}
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  {STYLES.map(({ id, label, icon }) => (
+                  {STYLES_I18N.map(({ id, label, icon }) => (
                     <button
                       key={id}
                       onClick={() => setStyle(id)}
@@ -1199,7 +1242,7 @@ export default function App() {
               {/* Language */}
               <div>
                 <div className="section-label mb-2">
-                  Langue du prompt
+                  {t.form.promptLanguage}
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {LANGUAGES.map(({ id, label, flag }) => (
@@ -1268,10 +1311,10 @@ export default function App() {
                     className="block text-sm font-semibold transition-colors duration-300"
                     style={{ color: hasAttachments ? 'white' : 'var(--text)' }}
                   >
-                    Fichiers attachés
+                    {t.form.attachments}
                   </span>
                   <span className="block text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    Le prompt inclura l'analyse de fichiers joints
+                    {t.form.attachmentsDesc}
                   </span>
                 </div>
                 {/* Toggle switch */}
@@ -1299,7 +1342,7 @@ export default function App() {
               <div className="animate-fade-in">
                 <div className="section-label mb-2">
                   <Settings2 size={14} />
-                  Options avancées
+                  {t.form.advancedOptions}
                 </div>
                 <div className="space-y-4">
 
@@ -1310,10 +1353,10 @@ export default function App() {
                       style={{ color: 'var(--text-muted)' }}
                     >
                       <Ratio size={13} />
-                      Ratio d'image
+                      {t.form.aspectRatio}
                     </label>
                     <div className="flex gap-2">
-                      {ASPECT_RATIOS.map(({ id, label, desc }) => (
+                      {ASPECT_RATIOS_I18N.map(({ id, label, desc }) => (
                         <button
                           key={id}
                           onClick={() => setAspectRatio(aspectRatio === id ? '' : id)}
@@ -1351,10 +1394,10 @@ export default function App() {
                       style={{ color: 'var(--text-muted)' }}
                     >
                       <Layers size={13} />
-                      Nombre de variantes
+                      {t.form.variantCount}
                     </label>
                     <div className="flex gap-2">
-                      {IMAGE_VARIANTS.map(({ id, label, desc }) => (
+                      {IMAGE_VARIANTS_I18N.map(({ id, label, desc }) => (
                         <button
                           key={id}
                           onClick={() => setImageVariants(id)}
@@ -1392,13 +1435,13 @@ export default function App() {
                       style={{ color: 'var(--text-muted)' }}
                     >
                       <Ban size={13} />
-                      Mots-clés négatifs (à exclure)
+                      {t.form.negativeKeywords}
                     </label>
                     <input
                       type="text"
                       value={negativeKeywords}
                       onChange={(e) => setNegativeKeywords(e.target.value)}
-                      placeholder="Ex: flou, texte, déformé, mains mal dessinées..."
+                      placeholder={t.form.negativeKeywordsPlaceholder}
                       className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all duration-300"
                       style={{
                         background: 'var(--secondary)',
@@ -1423,13 +1466,13 @@ export default function App() {
                       style={{ color: 'var(--text-muted)' }}
                     >
                       <Palette size={13} />
-                      Style ou artiste de référence
+                      {t.form.artistReference}
                     </label>
                     <input
                       type="text"
                       value={artistReference}
                       onChange={(e) => setArtistReference(e.target.value)}
-                      placeholder="Ex: Studio Ghibli, impressionnisme, Van Gogh..."
+                      placeholder={t.form.artistReferencePlaceholder}
                       className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all duration-300"
                       style={{
                         background: 'var(--secondary)',
@@ -1455,11 +1498,11 @@ export default function App() {
           {/* ─── Colonne droite : Résultats ─── */}
           <div className="lg:min-h-[calc(100vh-140px)]">
             <div className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto custom-scrollbar">
-              {loading && <LoadingState />}
-              {!loading && result && <ResultSection result={result} />}
+              {loading && <LoadingState t={t} />}
+              {!loading && result && <ResultSection result={result} t={t} />}
               {!loading && !result && (
                 <>
-                  <EmptyState />
+                  <EmptyState t={t} />
                   {/* Generate button */}
                   <button
                     ref={btnRef}
@@ -1484,7 +1527,7 @@ export default function App() {
                     }}
                   >
                     <Sparkles size={26} className="group-hover:animate-spin" />
-                    Générer le prompt
+                    {t.form.generate}
                   </button>
                 </>
               )}
