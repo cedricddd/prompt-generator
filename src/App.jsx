@@ -923,7 +923,7 @@ export default function App() {
       <FloatingParticles />
 
       {/* ─── Header enrichi ─── */}
-      <header className="relative pt-6 pb-5 text-center" style={{ zIndex: 1 }}>
+      <header className="relative pt-6 pb-5 text-center" style={{ zIndex: 50 }}>
         {/* Boutons haut droite */}
         <div className="absolute top-4 right-4 sm:right-6 flex items-center gap-2" style={{ zIndex: 10 }}>
           <LanguageSwitcher />
