@@ -349,7 +349,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // ─── Fallback SPA ───
-app.get('*', (req, res) => {
+app.get('*path', (req, res) => {
   res.sendFile(join(__dirname, 'dist', 'index.html'));
 });
 
