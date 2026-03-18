@@ -9,6 +9,13 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// ─── Serve frontend build ───
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+const __dirname = dirname(fileURLToPath(import.meta.url));
+app.use(express.static(join(__dirname, 'dist')));
+
+
 // Claude client (si clé disponible)
 let anthropic = null;
 if (process.env.ANTHROPIC_API_KEY) {
@@ -339,6 +346,11 @@ app.get('/api/health', (req, res) => {
     mode: anthropic ? 'api' : 'template',
     timestamp: new Date().toISOString()
   });
+});
+
+// ─── Fallback SPA ───
+app.get('*', (req, res) => {
+  res.sendFile(join(__dirname, 'dist', 'index.html'));
 });
 
 app.listen(PORT, () => {
