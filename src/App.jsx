@@ -9,6 +9,8 @@ import {
 } from 'lucide-react'
 import { LanguageSwitcher } from './components/LanguageSwitcher.jsx'
 import { useLanguage } from './contexts/LanguageContext.jsx'
+import { useAuth } from './contexts/AuthContext.jsx'
+import { useCredit } from './lib/auth'
 
 const SAAS_URL = import.meta.env.VITE_SAAS_URL || 'https://saas.ced-it.be'
 
@@ -777,6 +779,7 @@ function EmptyState({ t }) {
 // ─── App principale ───
 export default function App() {
   const { t, locale } = useLanguage()
+  const { token, creditsRemaining, setCreditsRemaining, accessType } = useAuth() ?? {}
 
   const TYPES_I18N = [
     { id: 'image', label: t.types.image.label, icon: Image, desc: t.types.image.desc, color: '#a855f7' },
@@ -863,9 +866,18 @@ export default function App() {
     setTimeout(() => ripple.remove(), 600)
   }
 
+  // Crédits épuisés = accessType "credits" ET solde = 0
+  const hasNoCredits = accessType === 'credits' && creditsRemaining !== null && creditsRemaining <= 0
+
   const handleGenerate = async () => {
     if (!keywords.trim()) {
       toast.error(t.toasts.noKeywords)
+      return
+    }
+
+    if (hasNoCredits) {
+      toast.error('Vos crédits sont épuisés. Achetez un pack pour continuer.')
+      setTimeout(() => { window.location.href = `${SAAS_URL}/apps/prompt-generator?reason=credits_exhausted` }, 1500)
       return
     }
 
@@ -911,6 +923,17 @@ export default function App() {
         imageVariants,
       })
       toast.success(t.toasts.success)
+
+      // Déduire 1 crédit après une génération réussie
+      if (accessType === 'credits' && token) {
+        const creditResult = await useCredit(token)
+        if (creditResult === 'no_credits') {
+          setCreditsRemaining(0)
+          toast.error('Vos crédits sont épuisés. Achetez un pack pour continuer.', { duration: 5000 })
+        } else if (creditResult?.creditsRemaining !== undefined) {
+          setCreditsRemaining(creditResult.creditsRemaining)
+        }
+      }
     } catch (err) {
       toast.error(t.toasts.error)
       console.error(err)
@@ -990,15 +1013,25 @@ export default function App() {
           </a>
         </div>
         <div className="animate-fade-in">
-          {/* Compteur de générations */}
-          {generationCount > 0 && (
-            <div className="flex justify-center mb-3 animate-fade-in-scale">
+          {/* Compteur de générations + crédits restants */}
+          <div className="flex justify-center gap-2 mb-3 animate-fade-in-scale flex-wrap">
+            {generationCount > 0 && (
               <div className="badge-pill">
                 <Rocket size={11} />
                 {generationCount} prompt{generationCount > 1 ? 's' : ''} généré{generationCount > 1 ? 's' : ''}
               </div>
-            </div>
-          )}
+            )}
+            {accessType === 'credits' && creditsRemaining !== null && (
+              <div className="badge-pill" style={{
+                background: creditsRemaining <= 1 ? 'rgba(239,68,68,0.15)' : 'rgba(0,212,255,0.08)',
+                borderColor: creditsRemaining <= 1 ? 'rgba(239,68,68,0.3)' : 'rgba(0,212,255,0.15)',
+                color: creditsRemaining <= 1 ? '#f87171' : 'var(--accent)',
+              }}>
+                <Sparkles size={11} />
+                {creditsRemaining} crédit{creditsRemaining !== 1 ? 's' : ''} restant{creditsRemaining !== 1 ? 's' : ''}
+              </div>
+            )}
+          </div>
 
           <div className="flex items-center justify-center gap-4 mb-2">
             <div
@@ -1510,7 +1543,7 @@ export default function App() {
                       createRipple(e)
                       handleGenerate()
                     }}
-                    disabled={!keywords.trim()}
+                    disabled={!keywords.trim() || hasNoCredits}
                     className="btn-ripple group w-full py-6 rounded-2xl text-xl font-bold transition-all duration-300 flex items-center justify-center gap-3 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed mt-10"
                     style={{
                       background: 'linear-gradient(135deg, var(--accent), #0066ff)',

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { checkAppAccess, redirectToSso } from '../lib/auth'
+import { checkAppAccess, redirectToSso, getStoredToken } from '../lib/auth'
+import { AuthContext } from '../contexts/AuthContext'
 
 const SAAS_URL = import.meta.env.VITE_SAAS_URL || 'https://saas.ced-it.be'
 const APP_SLUG = import.meta.env.VITE_APP_SLUG || 'prompt-generator'
@@ -14,6 +15,7 @@ const APP_SLUG = import.meta.env.VITE_APP_SLUG || 'prompt-generator'
 export default function AuthGuard({ children }) {
   const [authState, setAuthState] = useState('loading')
   const [accessInfo, setAccessInfo] = useState(null)
+  const [creditsRemaining, setCreditsRemaining] = useState(null)
   const [trialBannerDismissed, setTrialBannerDismissed] = useState(false)
 
   useEffect(() => {
@@ -21,6 +23,7 @@ export default function AuthGuard({ children }) {
       if (result.status === 'authorized') {
         setAuthState('authorized')
         setAccessInfo(result)
+        setCreditsRemaining(result.creditsRemaining ?? null)
       } else {
         setAuthState('unauthorized')
       }
@@ -38,7 +41,12 @@ export default function AuthGuard({ children }) {
   const showTrialBanner = accessInfo?.accessType === 'trial' && !trialBannerDismissed
 
   return (
-    <>
+    <AuthContext.Provider value={{
+      token: getStoredToken(),
+      creditsRemaining,
+      setCreditsRemaining,
+      accessType: accessInfo?.accessType,
+    }}>
       {showTrialBanner && (
         <TrialBanner
           expiresAt={accessInfo.trialExpiresAt}
@@ -48,7 +56,7 @@ export default function AuthGuard({ children }) {
       <div style={showTrialBanner ? { paddingTop: '40px' } : undefined}>
         {children}
       </div>
-    </>
+    </AuthContext.Provider>
   )
 }
 
